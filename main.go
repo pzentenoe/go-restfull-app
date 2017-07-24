@@ -37,20 +37,42 @@ func PostNoteHandler(w http.ResponseWriter, request *http.Request) {
 	}
 	note.CreatedAt = time.Now()
 	id ++
+	//convirtiendo int to string
 	k := strconv.Itoa(id)
 	noteStore[k] = note
 
+	//Seteando header
 	w.Header().Set("Content-Type", "application/json")
 	j, error := json.Marshal(note)
 	if error != nil {
 		panic(error)
 	}
+	//Escribiendo headers a la respuesta
 	w.WriteHeader(http.StatusCreated)
 	w.Write(j)
 
 }
 func PutNoteHandler(w http.ResponseWriter, request *http.Request) {
-	fmt.Fprintf(w, "PUT")
+	//Recuperando todas las variables del request
+	vars := mux.Vars(request)
+	//obteniendo el id del slice
+	k := vars["id"]
+	var noteUpdate Note
+	err := json.NewDecoder(request.Body).Decode(&noteUpdate)
+	if err != nil {
+		panic(err)
+	}
+
+	//si contiene algun elemento con ese id
+	if note, OK := noteStore[k]; OK {
+		note.CreatedAt = time.Now()
+		delete(noteStore, k)
+		noteStore[k] = note
+	} else {
+		log.Printf("No encontramos el id %s", k)
+	}
+	w.WriteHeader(http.StatusNoContent)
+
 }
 func DeleteNoteHandler(w http.ResponseWriter, request *http.Request) {
 	fmt.Fprintf(w, "DELETE")
