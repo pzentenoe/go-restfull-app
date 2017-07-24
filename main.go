@@ -6,28 +6,69 @@ import (
 	"time"
 	"log"
 	"fmt"
+	"encoding/json"
+	"strconv"
 )
 
-func DELETEUsers(w http.ResponseWriter, request *http.Request) {
-	fmt.Fprintf(w, "DELETE")
+var noteStore = make(map[string]Note)
+
+var id int
+
+func GetNoteHandler(w http.ResponseWriter, request *http.Request) {
+	var notes [] Note
+	for _, value := range noteStore {
+		notes = append(notes, value)
+	}
+	w.Header().Set("Content-Type", "application/json")
+	j, error := json.Marshal(notes)
+	if error != nil {
+		panic(error)
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Write(j)
 }
-func PUTUsers(w http.ResponseWriter, request *http.Request) {
+func PostNoteHandler(w http.ResponseWriter, request *http.Request) {
+	var note Note
+	//Decodificar json a Objeto
+	err := json.NewDecoder(request.Body).Decode(&note)
+	if err != nil {
+		panic(err)
+	}
+	note.CreatedAt = time.Now()
+	id ++
+	k := strconv.Itoa(id)
+	noteStore[k] = note
+
+	w.Header().Set("Content-Type", "application/json")
+	j, error := json.Marshal(note)
+	if error != nil {
+		panic(error)
+	}
+	w.WriteHeader(http.StatusCreated)
+	w.Write(j)
+
+}
+func PutNoteHandler(w http.ResponseWriter, request *http.Request) {
 	fmt.Fprintf(w, "PUT")
 }
-func POSTUsers(w http.ResponseWriter, request *http.Request) {
-	fmt.Fprintf(w, "POST")
+func DeleteNoteHandler(w http.ResponseWriter, request *http.Request) {
+	fmt.Fprintf(w, "DELETE")
 }
-func GetUsers(w http.ResponseWriter, request *http.Request) {
-	fmt.Fprintf(w, "GET")
+
+type Note struct {
+	Title       string `json:"title"` //Notacion para decir como se llamara el campo al convertirlo en json
+	Description string `json:"description"`
+	CreatedAt   time.Time `json:"created_at"`
 }
 
 func main() {
 
 	router := mux.NewRouter().StrictSlash(false) //Hace que las rutas sean distintas aunque terminen con slash
-	router.HandleFunc("/api/users", GetUsers).Methods("GET")
-	router.HandleFunc("/api/users", POSTUsers).Methods("POST")
-	router.HandleFunc("/api/users", PUTUsers).Methods("PUT")
-	router.HandleFunc("/api/users", DELETEUsers).Methods("DELETE")
+	router.HandleFunc("/api/notes", GetNoteHandler).Methods("GET")
+	router.HandleFunc("/api/notes", PostNoteHandler).Methods("POST")
+	router.HandleFunc("/api/notes/{id}", PutNoteHandler).Methods("PUT")
+	router.HandleFunc("/api/notes/{id}", DeleteNoteHandler).Methods("DELETE")
 
 	server := &http.Server{
 		Addr:           ":8080",
