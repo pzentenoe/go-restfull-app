@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"time"
 	"log"
-	"fmt"
 	"encoding/json"
 	"strconv"
 )
@@ -57,17 +56,17 @@ func PutNoteHandler(w http.ResponseWriter, request *http.Request) {
 	vars := mux.Vars(request)
 	//obteniendo el id del slice
 	k := vars["id"]
+
 	var noteUpdate Note
 	err := json.NewDecoder(request.Body).Decode(&noteUpdate)
 	if err != nil {
 		panic(err)
 	}
-
 	//si contiene algun elemento con ese id
-	if note, OK := noteStore[k]; OK {
-		note.CreatedAt = time.Now()
+	if note, ok := noteStore[k]; ok {
+		noteUpdate.CreatedAt = note.CreatedAt
 		delete(noteStore, k)
-		noteStore[k] = note
+		noteStore[k] = noteUpdate
 	} else {
 		log.Printf("No encontramos el id %s", k)
 	}
@@ -75,7 +74,18 @@ func PutNoteHandler(w http.ResponseWriter, request *http.Request) {
 
 }
 func DeleteNoteHandler(w http.ResponseWriter, request *http.Request) {
-	fmt.Fprintf(w, "DELETE")
+	//Recuperando todas las variables del request
+	vars := mux.Vars(request)
+	//obteniendo el id del slice
+	k := vars["id"]
+	//si contiene algun elemento con ese id
+	if _, OK := noteStore[k]; OK {
+		delete(noteStore, k)
+	} else {
+		log.Printf("No encontramos el id %s", k)
+	}
+	w.WriteHeader(http.StatusNoContent)
+
 }
 
 type Note struct {
@@ -93,14 +103,14 @@ func main() {
 	router.HandleFunc("/api/notes/{id}", DeleteNoteHandler).Methods("DELETE")
 
 	server := &http.Server{
-		Addr:           ":8080",
+		Addr:           ":8090",
 		Handler:        router,
 		ReadTimeout:    10 * time.Second,
 		WriteTimeout:   10 * time.Second,
 		MaxHeaderBytes: 1 << 20, //maximo megabytes del header, operador shift multiplica por 2 y eleva 20 veces y devuelve en bytes
 	}
 
-	log.Println("Listening")
+	log.Println("Listening in port ", server.Addr)
 	server.ListenAndServe()
 
 }
